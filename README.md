@@ -1,7 +1,8 @@
 # Kaizen Labs
 
-Turns a multi-outlet F&B operator's POS data into an hourly demand forecast per outlet, then into
-suggested orders, staffing and roster gaps, shown in one dashboard. Also holds the one-page website
+Turns a multi-outlet F&B operator's POS data into next week's plan: customers per day, people on
+each shift, what each menu item will sell, the ingredients that takes, and an order list. Shown on
+one dashboard page and a one-page PDF. Also holds the one-page website
 for kaizenlabs.sg (`site/`).
 
 ```bash
@@ -30,7 +31,7 @@ clients, a `mapping.yaml` (how to read their POS export).
 | `make validate CLIENT=x` | Checks a client's input files against the data contract and says what is wrong, line by line. | inputs | (nothing) |
 | `make signals CLIENT=x` | Gets public holidays, school holidays and daily weather for the client's dates. **The only step that uses the internet.** `OFFLINE=1` uses the cache only. | inputs, `data/signals/` | `signals_daily.csv` |
 | `make forecast CLIENT=x` | Runs `signals`, then tests the model on the last 8 weeks against the rules operators use today, prints the accuracy per outlet, and forecasts the next 7 days hour by hour. | inputs, `signals_daily.csv` | `forecast.csv`, `backtest*.csv`, `daily_sales.csv` |
-| `make plan CLIENT=x` | Turns the forecast into suggested orders and staffing, compares the roster with what was needed over the last 28 days, and makes a clearly labelled savings estimate. | inputs, `forecast.csv` | `staffing_plan.csv`, `suggested_orders.csv`, `outlet_summary.csv`, and supporting files |
+| `make plan CLIENT=x` | Turns the forecast into people per shift, menu items per day, ingredients per day and an order list; compares the roster with what was needed over the last 28 days; makes a clearly labelled savings estimate. | inputs, `forecast.csv` | `staffing_plan.csv`, `sku_forecast.csv`, `ingredient_forecast.csv`, `suggested_orders.csv`, `outlet_summary.csv`, and supporting files |
 | `make dashboard CLIENT=x` | Opens the dashboard. It reads only the files in the outputs folder, and each section names its source file. | outputs | (nothing) |
 | `make report CLIENT=x` | One-page PDF summary from the same files. | outputs | `<key>_summary.pdf` |
 
@@ -46,13 +47,18 @@ season × rain × slow growth × noise, then spread over opening hours with each
 | CBD - Raffles Place | Busy Mon-Thu, softer Fridays, near-empty weekends and public holidays, quieter on days next to a holiday (people take leave), morning and lunch spikes |
 | Orchard | Weekend peaks, festive season, loses up to ~28% of trade on very wet days, afternoon and evening peaks |
 | Tampines, Jurong East | Weekends and school holidays up, small rain effect |
-| Changi Airport T3 | Steady, 5am to midnight, follows travel seasons (June, December), no rain effect |
+| Changi Airport T3 | Steady, 6am to midnight, follows travel seasons (June, December), no rain effect |
 
 Weather is **real** (MSS Changi daily records) where published, and synthetic for the rest, so a rainy
-day in the demo really was rainy. Stock, waste and rosters are simulated with the rules of thumb
-operators use today (fixed weekly par levels, fresh items at "last week plus 15%", one roster
-template per weekday that ignores holidays), which is where the demo's waste, stock-outs and
-roster gaps come from.
+day in the demo really was rainy.
+
+The menu has 8 items (flat white, latte, long black, iced latte, matcha latte, butter croissant,
+chicken sandwich, banana bread), each with its own share of sales per outlet and a weekend effect.
+`recipes.csv` breaks them into 12 ingredients (e.g. a flat white = 18 g beans, 150 ml milk, and a cup
+and lid 60% of the time for takeaway). Stock, waste and rosters are simulated with the rules of
+thumb operators use today: fixed par levels for ingredients, fresh items made at "last week plus
+15%", and one roster template per weekday of three 6-hour shifts with 3 to 6 people, which ignores
+holidays and seasons. That is where the demo's waste, stock-outs and roster gaps come from.
 
 History ends last Sunday by default; `make sample END=2026-10-11` fixes the date. Same seed, same data.
 
@@ -63,11 +69,12 @@ What a client provides. Only `sales.csv` is required.
 | File | Columns | Notes |
 |---|---|---|
 | `sales.csv` | `timestamp, outlet, transactions` | Hourly, start of the hour, Singapore time, no offset. Missing hours = no sales. |
-| `items.csv` | `date, outlet, item, units_sold` | Optional. Lets the plan learn real usage per outlet. |
-| `stock.csv` | `date, outlet, item, unit, on_hand` | Optional. Closing count. Fresh items written off daily don't need counting. |
+| `items.csv` | `date, outlet, item, units_sold` | Optional. Menu items (SKUs) sold per day. Gives each outlet's sales mix. |
+| `stock.csv` | `date, outlet, item, unit, on_hand` | Optional. Closing count per ingredient. Fresh items written off daily don't need counting. |
 | `roster.csv` | `date, outlet, hour, scheduled_staff` | Optional. Include next week to compare against the suggested staffing. |
 | `waste.csv` | `date, outlet, waste_sgd` | Optional. |
-| `menu.csv` | `item, unit, usage_per_transaction` | Optional, agreed with the client. Needed for orders if there is no `items.csv`. |
+| `menu.csv` | `item, unit, usage_per_transaction` | Optional, agreed with the client. Menu items per transaction, used when there is no `items.csv`. |
+| `recipes.csv` | `item, ingredient, unit, qty_per_item` | Optional, agreed with the client. The bill of materials: what one of each menu item uses. Without it, each menu item is its own stock item. |
 | `weather.csv` | `date, rain_mm, max_temp_c` | Optional fallback weather. |
 
 Files must have **exactly** these columns. A stray `customer_name` or `phone` column is rejected, not
@@ -80,7 +87,7 @@ checks (every outlet must appear in `sales.csv`). Errors point to the CSV line.
 2. Put their export(s) in `data/clients/<key>/raw/`. This folder is git-ignored: **client data is never committed**.
 3. Write `clients/<key>/mapping.yaml`: which column holds the time, the outlet and the count, and
    the outlet names. Two worked examples:
-   - `clients/example_15min/`: 15-minute buckets with `+08:00` timestamps, plus stock, waste, roster and menu files with their own column names and date formats.
+   - `clients/example_15min/`: 15-minute buckets with `+08:00` timestamps, plus stock, waste, roster, menu and bill-of-materials files with their own column names and date formats.
    - `clients/example_txn/`: one row per receipt line, `dd/mm/yyyy` dates, voids mixed in. Receipts are counted once each, voids dropped.
 4. `make ingest CLIENT=<key>`, then `make forecast plan dashboard CLIENT=<key>`.
 
@@ -123,49 +130,67 @@ source, and every row of `signals_daily.csv` has a `weather_source` column.
 On the sample data (your numbers will vary slightly with the date):
 
 ```
-Hourly, 7 days ahead     model   last week   4-week avg
-All outlets              78.8%     70.4%       76.8%
-Daily totals             91.8%     86.7%       89.8%
+7 days ahead, all outlets   model   last week   4-week avg
+Daily totals                92.7%     87.9%       90.2%
+Hourly                      79.8%     71.3%       77.5%
 ```
 
 Hourly accuracy has a ceiling: at ~50 transactions an hour, pure chance alone moves an hour by
-about 14%. Staffing is planned by the hour, so that is the headline; ordering uses daily totals.
+about 14%. The dashboard leads with daily accuracy, which is what ordering and the founder's
+week depend on; shifts use the busiest hour, which the hourly forecast provides.
 
 ### 6. Plan (`kaizen/plan.py`)
 
-- **Suggested order** = forecast demand × (1 + buffer) − usable stock on hand, rounded up to whole
-  packs, never negative. Forecast demand = forecast transactions over the item's cover days × units
-  per transaction. Units per transaction are learned from `items.csv` (last 28 days, per outlet) when
-  it exists, else taken from `menu.csv`; `item_rates.csv` records which. Perishables don't count stock
-  on hand (leftovers are written off). Buffer, pack size, cover days and perishable are per item in
-  `client.yaml` (default buffer 10%).
-- **Suggested staff** per hour = ceil(forecast transactions ÷ transactions per staff-hour), at least the
-  outlet's minimum while open. Hours forecast under 1 transaction count as closed. Both parameters
-  are per outlet in `client.yaml`.
-- **Gaps**: for each outlet and day of the last 28, rostered vs needed staff-hours, where "needed"
-  applies the same rule to what actually sold (`staffing_gaps.csv`). Over- and under-staffed hours
-  are staff-hours above or below that.
-- **Savings estimate**: share of waste assumed avoidable + share of over-staffed hours assumed cut ×
+- **People per shift.** Each day has three 6-hour shifts: Opening 06:00-12:00, Mid 12:00-18:00,
+  Closing 18:00-24:00. People on a shift = enough for its **busiest hour**:
+  ceil(busiest-hour forecast customers ÷ customers per person per hour), kept between 3 and 6. A
+  shift with no customers expected is closed. If the busiest hour would need more than 6, the
+  shift is rostered at 6 and flagged so the founder can add a part-timer for the peak. Shift times,
+  the 3-to-6 range and the 30 customers per person per hour are all in `client.yaml`, and can differ
+  per outlet. The plan also lists every shift where the current roster differs.
+- **What will sell.** Forecast units of each menu item per day = forecast customers × that item's
+  share of sales at that outlet over the last 28 days, worked out separately for weekdays and for
+  weekends/public holidays (from `items.csv`; `menu.csv` if there's no history). Simple on purpose:
+  the founder can check it against the till. The shares used are in `sku_mix.csv`.
+- **Ingredients per day.** Menu items × `recipes.csv`.
+- **Order list.** Ingredient use over its cover days (days until the next delivery) × (1 + buffer) −
+  usable stock on hand, rounded up to whole packs, never negative. Fresh items (bread, lettuce,
+  banana bread) cover tomorrow only and don't count leftovers. Buffer, pack size, cover days and
+  perishable are per ingredient in `client.yaml` (default buffer 10%).
+- **Gaps.** For each outlet, day and shift of the last 28 days: people rostered vs what the actual
+  customers needed under the same rule, in staff-hours (`staffing_gaps.csv`).
+- **Savings estimate.** Share of waste assumed avoidable + share of over-staffed hours assumed cut ×
   hourly wage, per month. All assumptions live in `client.yaml` and are written next to every number
   in `savings_estimate.csv`. It is always labelled an estimate, never a guarantee.
 
 ### 7. Dashboard and report
 
-`dashboard/app.py` (Streamlit): headline accuracy vs the last-week rule, daily actual vs forecast
-(past weeks show what the forecast said before it happened), a staff-needed-by-hour heatmap with the
-roster in the tooltip, the suggested-orders table, and waste, roster gaps and stock-outs by outlet.
-Outlet picker at the top. Works on a phone.
+`dashboard/app.py` (Streamlit) is one page about **next week**, in the order a founder decides things:
+
+1. **Headline numbers:** customers expected (vs last week), busiest day, people-shifts to roster
+   (vs the current roster), number of ingredients to order. A short "needs a decision" list
+   (public holidays, shifts that need more than 6).
+2. **How busy each day will be:** 7 bars, with last week's figure as a tick.
+3. **Who to roster:** people per shift per outlet for the 7 days, then the list of roster changes.
+4. **What will sell:** each menu item per day.
+5. **Ingredients and what to order:** daily use per ingredient, then the order list per outlet.
+
+How the forecast was checked (accuracy vs "same as last week") and the last 28 days (waste, roster
+gaps, stock-outs, savings estimate) sit in collapsed sections at the bottom. An outlet picker at the
+top switches between the group and one outlet. Works on a phone. `make report` puts the same plan on
+one A4 page.
 
 Every number traces to a file:
 
 | Dashboard section | File in the outputs folder |
 |---|---|
-| Accuracy | `backtest_accuracy.csv` (hourly detail in `backtest.csv`) |
-| Daily transactions | `daily_sales.csv` |
-| Staff needed by hour | `staffing_plan.csv` |
-| Suggested orders | `suggested_orders.csv` (rates used: `item_rates.csv`) |
-| Last 28 days by outlet | `outlet_summary.csv` (daily detail: `staffing_gaps.csv`) |
-| Savings estimate | `savings_estimate.csv` |
+| Customers per day | `daily_sales.csv` (from `forecast.csv`) |
+| People per shift, roster changes | `staffing_plan.csv` |
+| What will sell | `sku_forecast.csv` (shares used: `sku_mix.csv`) |
+| Ingredients per day | `ingredient_forecast.csv` |
+| Order list | `suggested_orders.csv` |
+| How reliable | `backtest_accuracy.csv` (hourly detail in `backtest.csv`) |
+| Last 28 days | `outlet_summary.csv` (detail: `staffing_gaps.csv`), `savings_estimate.csv` |
 
 ---
 
@@ -254,9 +279,13 @@ tests/             data contract, ingest, features/back-test maths, orders and s
 
 ## Known limits
 
-- Rosters and opening hours are inferred from the hours an outlet has traded; an outlet that opens
-  new hours needs a few weeks before the model forecasts them well.
+- Opening hours are inferred from the hours an outlet has traded; an outlet that opens new hours
+  needs a few weeks before the model forecasts them well.
+- People per shift is sized for the busiest hour, so quieter hours of a long shift carry slack; a
+  split shift or part-timer is the fix when a shift is flagged.
+- The menu-item forecast assumes next week's sales mix looks like the last 4 weeks' (by weekday vs
+  weekend). A new menu item or a promotion needs its share set by hand in `menu.csv` at first.
 - The forecast week uses average weather unless a forecast is supplied as `weather.csv`. Rain matters
   most for Orchard-type outlets.
 - `school_holidays.yaml` must be updated once a year.
-- Item usage learned from `items.csv` slightly under-counts on days an item sold out.
+- Sales mix learned from `items.csv` slightly under-counts items on days they sold out.

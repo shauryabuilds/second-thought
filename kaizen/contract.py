@@ -8,6 +8,7 @@ Only `sales.csv` is required. Everything else improves the plan when present.
     roster.csv  date, outlet, hour, scheduled_staff            (optional)
     waste.csv   date, outlet, waste_sgd                        (optional)
     menu.csv    item, unit, usage_per_transaction              (optional, set up with the client)
+    recipes.csv item, ingredient, unit, qty_per_item           (optional, set up with the client)
     weather.csv date, rain_mm, max_temp_c                      (optional, fallback weather)
 
 Files must contain exactly these columns, no more. That is deliberate: the
@@ -90,6 +91,13 @@ class MenuRow(_Row):
     usage_per_transaction: float = Field(gt=0)
 
 
+class RecipeRow(_Row):
+    item: str = Field(min_length=1)  # a menu item (SKU), as named in items.csv / menu.csv
+    ingredient: str = Field(min_length=1)  # a stock item, as named in stock.csv
+    unit: str = Field(min_length=1)
+    qty_per_item: float = Field(gt=0)
+
+
 class WeatherRow(_Row):
     date: dt.date
     rain_mm: float = Field(ge=0)
@@ -117,6 +125,7 @@ SPECS: dict[str, FileSpec] = {
         FileSpec("roster", RosterRow, ("date", "outlet", "hour")),
         FileSpec("waste", WasteRow, ("date", "outlet")),
         FileSpec("menu", MenuRow, ("item",)),
+        FileSpec("recipes", RecipeRow, ("item", "ingredient")),
         FileSpec("weather", WeatherRow, ("date",)),
     ]
 }
@@ -181,6 +190,7 @@ class Inputs:
     roster: pd.DataFrame | None = None
     waste: pd.DataFrame | None = None
     menu: pd.DataFrame | None = None
+    recipes: pd.DataFrame | None = None
     weather: pd.DataFrame | None = None
 
     @property

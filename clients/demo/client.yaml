@@ -5,26 +5,38 @@ inputs_dir: data/sample
 outputs_dir: data/outputs
 weather_station: S24          # MSS Changi
 
-# Suggested staff per hour = ceil(forecast transactions / transactions_per_staff_hour),
-# never below min_staff while the outlet is open.
+# Three 6-hour shifts a day. People on a shift = enough for its busiest hour:
+# ceil(busiest-hour forecast transactions / transactions_per_staff_hour), kept between
+# min_staff and max_staff. Shifts that would need more than max_staff are flagged.
+shifts:
+  - {name: Opening, start: 6, end: 12}
+  - {name: Mid, start: 12, end: 18}
+  - {name: Closing, start: 18, end: 24}
 staffing:
-  transactions_per_staff_hour: 22
-  min_staff: 2
-staffing_by_outlet:
-  CBD - Raffles Place: {transactions_per_staff_hour: 25}   # grab-and-go, faster service
-  Changi Airport T3: {min_staff: 3}                        # airside, longer hours
+  transactions_per_staff_hour: 30
+  min_staff: 3
+  max_staff: 6
+staffing_by_outlet: {}    # e.g. "Changi Airport T3": {min_staff: 4}
 
-# Suggested order = forecast demand over cover_days x (1 + buffer) - usable stock on hand,
-# rounded up to whole packs. Perishables are baked or delivered daily: leftovers are
-# written off, so stock on hand is not counted for them.
+# Ordering is per ingredient (recipes.csv turns menu items into ingredients).
+# Suggested order = forecast use over cover_days x (1 + buffer) - usable stock on hand,
+# rounded up to whole packs. Perishables arrive fresh daily: leftovers are written off,
+# so stock on hand is not counted for them.
 items:
   buffer: 0.10
 items_by_name:
-  Coffee beans:     {pack_size: 1,  cover_days: 7}     # 1 kg bags, weekly delivery
-  Fresh milk:       {pack_size: 12, cover_days: 3}     # cases of 12 x 1 L, twice a week
-  Butter croissant: {pack_size: 12, cover_days: 1, perishable: true, buffer: 0.05}
-  Chicken sandwich: {pack_size: 6,  cover_days: 1, perishable: true, buffer: 0.05}
-  Takeaway cups:    {pack_size: 50, cover_days: 7, buffer: 0.15}
+  Coffee beans:      {pack_size: 1,   cover_days: 7}                    # 1 kg bags, weekly
+  Fresh milk:        {pack_size: 12,  cover_days: 3}                    # cases of 12 x 1 L
+  Matcha powder:     {pack_size: 0.5, cover_days: 7}                    # 500 g tins
+  Hot cups:          {pack_size: 50,  cover_days: 7, buffer: 0.15}      # sleeves of 50
+  Cold cups:         {pack_size: 50,  cover_days: 7, buffer: 0.15}
+  Cup lids:          {pack_size: 100, cover_days: 7, buffer: 0.15}
+  Frozen croissants: {pack_size: 48,  cover_days: 3}                    # cartons of 48, bake-off
+  Chicken breast:    {pack_size: 2,   cover_days: 2}                    # 2 kg packs, chilled
+  Butter:            {pack_size: 1,   cover_days: 7}
+  Sourdough bread:   {pack_size: 12,  cover_days: 1, perishable: true}  # loaves of 12 slices
+  Lettuce:           {pack_size: 0.5, cover_days: 1, perishable: true}
+  Banana bread loaf: {pack_size: 1,   cover_days: 1, perishable: true}
 
 # Used only for the clearly labelled savings ESTIMATE. Change these with the client.
 savings:

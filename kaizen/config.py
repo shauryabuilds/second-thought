@@ -25,8 +25,27 @@ HORIZON_DAYS = 7
 
 
 class StaffingParams(BaseModel):
-    transactions_per_staff_hour: float = Field(20.0, gt=0)
-    min_staff: int = Field(2, ge=0)
+    transactions_per_staff_hour: float = Field(30.0, gt=0)
+    min_staff: int = Field(3, ge=0)  # per shift, whenever the outlet trades during it
+    max_staff: int = Field(6, ge=1)  # per shift; busier shifts are flagged rather than over-rostered
+
+
+class Shift(BaseModel):
+    name: str
+    start: int = Field(ge=0, le=23)  # first hour of the shift
+    end: int = Field(ge=1, le=24)  # hour the shift ends (exclusive)
+
+    @property
+    def hours(self) -> int:
+        return self.end - self.start
+
+    @property
+    def label(self) -> str:
+        return f"{self.name} {self.start:02d}:00-{self.end % 24:02d}:00"
+
+
+DEFAULT_SHIFTS = [Shift(name="Opening", start=6, end=12), Shift(name="Mid", start=12, end=18),
+                  Shift(name="Closing", start=18, end=24)]
 
 
 class ItemParams(BaseModel):
@@ -53,6 +72,7 @@ class ClientConfig(BaseModel):
     review_days: int = 28
     staffing: StaffingParams = StaffingParams()
     staffing_by_outlet: dict[str, dict] = {}
+    shifts: list[Shift] = DEFAULT_SHIFTS
     items: ItemParams = ItemParams()
     items_by_name: dict[str, dict] = {}
     savings: SavingsAssumptions = SavingsAssumptions()

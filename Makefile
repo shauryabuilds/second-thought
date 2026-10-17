@@ -55,7 +55,7 @@ test:
 
 # Refresh the website's dashboard screenshot (needs `pip install playwright`; dashboard must be running).
 screenshot:
-	$(PY) scripts/screenshot.py http://localhost:$(PORT) site/assets/dashboard.png 1100 light 1640
+	$(PY) scripts/screenshot.py http://localhost:$(PORT) site/assets/dashboard.png 1100 light 9000
 
 # Preview the website locally on http://localhost:8000
 site:

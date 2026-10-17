@@ -2,8 +2,13 @@
 # Try: make ingest CLIENT=example_15min && make forecast plan CLIENT=example_15min
 name: Example (15-minute export)
 # inputs_dir / outputs_dir default to data/clients/example_15min/{inputs,outputs}
+# Shifts and staffing use the defaults (06-12, 12-18, 18-24; 25 transactions per staff-hour; 3 to 6 people).
 items_by_name:
-  Butter croissant: {pack_size: 12, cover_days: 1, perishable: true}
-  Chicken sandwich: {pack_size: 6, cover_days: 1, perishable: true}
   Fresh milk: {pack_size: 12, cover_days: 3}
-  Takeaway cups: {pack_size: 50}
+  Hot cups: {pack_size: 50}
+  Cold cups: {pack_size: 50}
+  Cup lids: {pack_size: 100}
+  Frozen croissants: {pack_size: 48, cover_days: 3}
+  Sourdough bread: {pack_size: 12, cover_days: 1, perishable: true}
+  Lettuce: {pack_size: 0.5, cover_days: 1, perishable: true}
+  Banana bread loaf: {cover_days: 1, perishable: true}

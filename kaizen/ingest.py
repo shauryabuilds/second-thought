@@ -65,7 +65,7 @@ class Mapping(BaseModel):
     model_config = ConfigDict(extra="forbid")
     outlets: dict[str, str] = {}  # raw outlet name -> name used in every output; empty keeps raw names
     sales: SalesMapping
-    files: dict[Literal["items", "stock", "roster", "waste", "menu", "weather"], FileMapping] = {}
+    files: dict[Literal["items", "stock", "roster", "waste", "menu", "recipes", "weather"], FileMapping] = {}
 
 
 def load_mapping(path: Path) -> Mapping:

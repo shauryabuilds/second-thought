@@ -86,7 +86,11 @@ def test_generated_sample_matches_the_contract(tmp_path):
     generate(pd.Timestamp("2026-03-29"), out_dir=tmp_path, allow_network=False, messy_exports=False)
     inputs = load_inputs(tmp_path)
     assert len(inputs.outlets) == 5
-    for name in ("items", "stock", "roster", "waste", "menu", "weather"):
+    for name in ("items", "stock", "roster", "waste", "menu", "recipes", "weather"):
         assert getattr(inputs, name) is not None, name
-    # Roster runs 7 days past the sales history: that is next week's roster.
+    # Roster runs 7 days past the sales history: that is next week's roster, 3 to 6 people per shift.
     assert inputs.roster["date"].max() == inputs.history_end + pd.Timedelta(days=7)
+    assert inputs.roster["scheduled_staff"].between(3, 6).all()
+    # Every menu item sold has a recipe, and every counted stock item is a recipe ingredient.
+    assert set(inputs.items["item"]) <= set(inputs.recipes["item"])
+    assert set(inputs.stock["item"]) <= set(inputs.recipes["ingredient"])

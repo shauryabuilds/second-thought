@@ -28,5 +28,8 @@ files:
     file: roster_export.csv
     columns: {date: Shift Date, outlet: Branch Name, hour: Hour, scheduled_staff: Staff On Duty}
   menu:
-    file: recipe_usage.csv
+    file: menu_mix.csv
     columns: {item: Item, unit: UOM, usage_per_transaction: Qty per Bill}
+  recipes:
+    file: bill_of_materials.csv
+    columns: {item: Menu Item, ingredient: Ingredient, unit: UOM, qty_per_item: Qty}

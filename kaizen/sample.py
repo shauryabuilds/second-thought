@@ -11,9 +11,10 @@ How the numbers are made
   hour gets count noise.
   Weather uses real MSS records where available (so a rainy day in the demo
   really was rainy) and a synthetic Singapore-like series elsewhere.
-  Stock, waste and rosters are simulated with the rules of thumb operators use
-  today (fixed weekly par levels, "last week plus 15%" for fresh items, one
-  roster template per day of week), which is where the gaps in the demo come from.
+  Menu items sold each day follow each outlet's mix of 8 items. Recipes turn them
+  into ingredient use. Stock, waste and rosters are simulated with the rules of
+  thumb operators use today (fixed par levels, "last week plus 15%" for fresh
+  items, one shift template per weekday), which is where the gaps in the demo come from.
 
 It also writes two messy POS exports to data/clients/example_*/raw/ for
 trying out `make ingest`.
@@ -60,50 +61,83 @@ OUTLETS = [
     Outlet(
         "CBD - Raffles Place", "RP01", 1000, (1.0, 1.06, 1.06, 1.0, 0.78, 0.28, 0.20), 0.22, 0.94, 0.06,
         (7, 20), (8, 17),
-        ((8.3, 0.8, 1.7), (12.5, 0.8, 1.9), (15.5, 1.5, 0.5)),
+        ((8.3, 0.9, 1.3), (12.5, 0.9, 1.4), (15.5, 1.5, 0.5)),
         ((10.5, 1.5, 1.0), (13.0, 1.2, 1.0)),
         month=(0.92, 1.0, 1.0, 1.0, 1.0, 0.96, 1.0, 1.0, 1.0, 1.0, 1.0, 0.86),
     ),
     Outlet(
-        "Orchard", "OR02", 640, (1.0, 0.97, 1.0, 1.03, 1.15, 1.55, 1.45), 1.45, 1.08, 0.28,
+        "Orchard", "OR02", 880, (1.0, 0.97, 1.0, 1.03, 1.15, 1.55, 1.45), 1.45, 1.08, 0.28,
         (9, 22), (9, 22),
         ((11.0, 1.2, 0.5), (15.0, 1.8, 1.1), (19.0, 1.5, 0.9)),
         ((12.0, 1.5, 0.8), (15.5, 2.0, 1.2), (19.0, 1.5, 0.9)),
         month=(1.0, 1.05, 0.98, 0.98, 1.0, 1.02, 1.0, 0.98, 0.97, 0.98, 1.08, 1.22),
     ),
     Outlet(
-        "Tampines", "TP03", 600, (1.0, 0.98, 1.0, 1.0, 1.06, 1.42, 1.38), 1.35, 1.18, 0.08,
+        "Tampines", "TP03", 780, (1.0, 0.98, 1.0, 1.0, 1.06, 1.42, 1.38), 1.35, 1.18, 0.08,
         (8, 22), (8, 22),
         ((9.0, 1.0, 0.7), (13.0, 1.5, 0.9), (16.0, 1.5, 0.8), (19.0, 1.3, 0.8)),
         ((10.0, 1.5, 1.0), (14.0, 1.8, 1.0), (19.0, 1.5, 0.8)),
     ),
     Outlet(
-        "Jurong East", "JE04", 560, (1.0, 1.0, 0.98, 1.0, 1.05, 1.40, 1.36), 1.32, 1.16, 0.08,
+        "Jurong East", "JE04", 740, (1.0, 1.0, 0.98, 1.0, 1.05, 1.40, 1.36), 1.32, 1.16, 0.08,
         (8, 22), (8, 22),
         ((9.0, 1.0, 0.6), (13.0, 1.5, 1.0), (16.0, 1.5, 0.8), (19.5, 1.3, 0.9)),
         ((10.0, 1.5, 1.0), (14.0, 1.8, 1.0), (19.5, 1.5, 0.8)),
     ),
     Outlet(
-        "Changi Airport T3", "CG05", 820, (1.0, 0.97, 0.97, 1.0, 1.05, 1.06, 1.04), 1.05, 1.10, 0.0,
-        (5, 24), (5, 24),
+        "Changi Airport T3", "CG05", 1050, (1.0, 0.97, 0.97, 1.0, 1.05, 1.06, 1.04), 1.05, 1.10, 0.0,
+        (6, 24), (6, 24),
         ((7.0, 1.5, 1.2), (12.5, 2.0, 0.9), (19.0, 2.0, 1.0)),
         ((7.0, 1.5, 1.2), (12.5, 2.0, 0.9), (19.0, 2.0, 1.0)),
         month=(1.06, 1.08, 1.02, 0.96, 0.96, 1.16, 1.10, 1.0, 0.96, 0.97, 1.04, 1.22),
     ),
 ]
 
-# item, unit, usage per transaction (group average), per-outlet usage multipliers, unit cost S$
-MENU = [
-    ("Coffee beans", "kg", 0.015, {"RP01": 1.15, "OR02": 0.9, "CG05": 0.95}, 38.0),
-    ("Fresh milk", "L", 0.11, {"RP01": 1.1, "OR02": 0.95}, 2.4),
-    ("Butter croissant", "pcs", 0.20, {"RP01": 0.9, "OR02": 1.3, "CG05": 1.1}, 1.2),
-    ("Chicken sandwich", "pcs", 0.10, {"RP01": 1.5, "CG05": 1.3, "OR02": 0.8}, 2.8),
-    ("Takeaway cups", "pcs", 0.55, {"RP01": 1.35, "CG05": 1.4, "OR02": 0.7, "TP03": 0.8, "JE04": 0.8}, 0.12),
+@dataclass(frozen=True)
+class Sku:
+    name: str
+    per_txn: float  # units sold per transaction, group average
+    outlet_mult: dict[str, float]
+    weekend_mult: float = 1.0  # weekends and public holidays
+    fresh_cost: float | None = None  # made or baked each day; leftovers are binned at this cost (S$)
+
+
+SKUS = [
+    Sku("Flat White", 0.30, {"RP01": 1.1, "CG05": 1.15, "OR02": 0.85}),
+    Sku("Latte", 0.24, {"TP03": 1.2, "JE04": 1.2, "RP01": 0.9}),
+    Sku("Long Black", 0.12, {"RP01": 1.6, "CG05": 1.2, "OR02": 0.7}, weekend_mult=0.8),
+    Sku("Iced Latte", 0.18, {"OR02": 1.4, "TP03": 1.1, "JE04": 1.1, "RP01": 0.8}, weekend_mult=1.15),
+    Sku("Matcha Latte", 0.06, {"OR02": 1.8, "TP03": 1.2, "JE04": 1.2}, weekend_mult=1.2),
+    Sku("Butter Croissant", 0.20, {"OR02": 1.3, "RP01": 0.9}, weekend_mult=1.25, fresh_cost=1.10),
+    Sku("Chicken Sandwich", 0.10, {"RP01": 1.6, "CG05": 1.3, "OR02": 0.8}, weekend_mult=0.75, fresh_cost=3.20),
+    Sku("Banana Bread", 0.08, {"TP03": 1.3, "JE04": 1.3}, weekend_mult=1.2, fresh_cost=0.90),
 ]
-FRESH_ITEMS = {"Butter croissant", "Chicken sandwich"}
-# Dry goods: delivery weekdays (0 = Monday) under the operator's current fixed-par routine.
-DELIVERY_DAYS = {"Coffee beans": (0,), "Fresh milk": (0, 3), "Takeaway cups": (0,)}
-OPERATOR_TXN_PER_STAFF_HOUR = 20
+
+# Bill of materials: what one of each menu item uses. Cups and lids assume ~60% takeaway.
+RECIPES = [
+    ("Flat White", "Coffee beans", "kg", 0.018), ("Flat White", "Fresh milk", "L", 0.15),
+    ("Flat White", "Hot cups", "pcs", 0.6), ("Flat White", "Cup lids", "pcs", 0.6),
+    ("Latte", "Coffee beans", "kg", 0.018), ("Latte", "Fresh milk", "L", 0.22),
+    ("Latte", "Hot cups", "pcs", 0.6), ("Latte", "Cup lids", "pcs", 0.6),
+    ("Long Black", "Coffee beans", "kg", 0.018), ("Long Black", "Hot cups", "pcs", 0.6),
+    ("Long Black", "Cup lids", "pcs", 0.6),
+    ("Iced Latte", "Coffee beans", "kg", 0.018), ("Iced Latte", "Fresh milk", "L", 0.18),
+    ("Iced Latte", "Cold cups", "pcs", 0.6), ("Iced Latte", "Cup lids", "pcs", 0.6),
+    ("Matcha Latte", "Matcha powder", "kg", 0.004), ("Matcha Latte", "Fresh milk", "L", 0.22),
+    ("Matcha Latte", "Hot cups", "pcs", 0.6), ("Matcha Latte", "Cup lids", "pcs", 0.6),
+    ("Butter Croissant", "Frozen croissants", "pcs", 1),
+    ("Chicken Sandwich", "Sourdough bread", "slices", 2), ("Chicken Sandwich", "Chicken breast", "kg", 0.08),
+    ("Chicken Sandwich", "Lettuce", "kg", 0.02), ("Chicken Sandwich", "Butter", "kg", 0.01),
+    ("Banana Bread", "Banana bread loaf", "loaves", 0.1),
+]
+# Ingredients counted in stock, and the weekdays they arrive (0 = Monday) under the operator's
+# current fixed-par routine. Bread, lettuce and banana bread come in fresh daily and aren't counted.
+DELIVERY_DAYS = {
+    "Coffee beans": (0,), "Fresh milk": (0, 3), "Matcha powder": (0,), "Hot cups": (0,), "Cold cups": (0,),
+    "Cup lids": (0,), "Frozen croissants": (0, 3), "Chicken breast": (0, 2, 4), "Butter": (0,),
+}
+OPERATOR_TXN_PER_STAFF_HOUR = 30
+SHIFTS = ((6, 12), (12, 18), (18, 24))  # the group's three 6-hour shifts
 
 # Singapore climate, by month: chance of a rain day, monthly rainfall mm, mean daily max temp °C.
 RAIN_CHANCE = (0.50, 0.35, 0.45, 0.50, 0.45, 0.40, 0.42, 0.45, 0.45, 0.50, 0.60, 0.60)
@@ -174,68 +208,78 @@ def make_sales(days: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
 
 
 def make_roster(days: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
-    """One fixed template per outlet and weekday, built from a typical week.
+    """Three 6-hour shifts, 3 to 6 people each, from one fixed template per outlet and weekday.
 
-    That is how most rosters are made today, and it ignores holidays, school
-    breaks and weather. Public holidays on weekdays get the weekday template.
+    That is how most rosters are made today: set once from a typical week, so it ignores
+    holidays, school breaks, seasons and growth. Weekday public holidays get the weekday template.
+    Written hour by hour, as the data contract expects.
     """
-    typical = days.assign(is_public_holiday=0, is_school_holiday=0, days_to_ph=99, days_from_ph=99, rain_mm=0.0, t=180)
+    typical = days.assign(is_public_holiday=0, is_school_holiday=0, days_to_ph=99, days_from_ph=99, rain_mm=0.0, t=0)
     frames = []
     for outlet in OUTLETS:
         base_day = daily_expected(outlet, typical, noise=False, rng=rng)
         for dow in range(7):
             mask = (days["date"].dt.weekday == dow).to_numpy()
             hours, bumps = (outlet.hours_weekend, outlet.shape_weekend) if dow >= 5 else (outlet.hours_weekday, outlet.shape_weekday)
-            shape = hourly_shape(bumps, hours)
-            staff = np.maximum(2, np.ceil(base_day[mask][0] * shape.to_numpy() * 1.05 / OPERATOR_TXN_PER_STAFF_HOUR))
+            per_hour = base_day[mask][0] * hourly_shape(bumps, hours)
             sel = days.loc[mask, "date"].to_numpy()
-            grid = np.tile(staff, (len(sel), 1))
-            grid = grid + rng.choice([-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], size=grid.shape)
-            frames.append(pd.DataFrame({
-                "date": np.repeat(sel, len(shape)),
-                "outlet": outlet.name,
-                "hour": np.tile(shape.index.to_numpy(), len(sel)),
-                "scheduled_staff": np.maximum(1, grid).astype(int).ravel(),
-            }))
+            for start, end in SHIFTS:
+                in_shift = per_hour[(per_hour.index >= start) & (per_hour.index < end)]
+                if in_shift.empty:
+                    continue
+                people = int(np.clip(np.ceil(in_shift.max() / OPERATOR_TXN_PER_STAFF_HOUR), 3, 6))
+                people = np.clip(people + rng.choice([-1, 0, 0, 0, 0, 0, 0, 0, 0, 1], size=len(sel)), 3, 6)
+                frames.append(pd.DataFrame({
+                    "date": np.repeat(sel, end - start),
+                    "outlet": outlet.name,
+                    "hour": np.tile(np.arange(start, end), len(sel)),
+                    "scheduled_staff": np.repeat(people, end - start).astype(int),
+                }))
     return pd.concat(frames).sort_values(["date", "outlet", "hour"]).reset_index(drop=True)
 
 
-def make_items_stock_waste(sales: pd.DataFrame, rng: np.random.Generator) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def make_items_stock_waste(sales: pd.DataFrame, days: pd.DataFrame, rng: np.random.Generator
+                           ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Menu items sold per day, ingredient stock counts, and daily waste."""
     daily = sales.assign(date=sales["timestamp"].dt.normalize()).groupby(["outlet", "date"])["transactions"].sum()
+    weekend_like = pd.Series(is_weekend_like(days), index=days["date"])
+    recipes = pd.DataFrame(RECIPES, columns=["item", "ingredient", "unit", "qty"])
     items_rows, stock_rows, waste_rows = [], [], []
     for outlet in OUTLETS:
         txns = daily.loc[outlet.name]
         dates = txns.index
-        waste = np.zeros(len(dates))
-        for item, unit, rate, mult, cost in MENU:
-            use_rate = rate * mult.get(outlet.code, 1.0)
-            if item in FRESH_ITEMS:
-                demand = rng.poisson(txns.to_numpy() * use_rate)
-                sold = np.zeros(len(dates))
-                for i in range(len(dates)):
-                    # Operator's rule: same as last week, plus 15%.
-                    ref = sold[i - 7] if i >= 7 else txns.iloc[i] * use_rate
-                    delivered = round(ref * 1.15)
-                    sold[i] = min(demand[i], delivered)
-                    waste[i] += (delivered - sold[i]) * cost
-                units = sold
+        we = weekend_like.reindex(dates).to_numpy()
+        waste = rng.gamma(1.5, 2.0, len(dates))  # the odd spoiled milk carton
+        used = {}  # units of each menu item that went through the kitchen (sold, or made and binned)
+        for sku in SKUS:
+            rate = sku.per_txn * sku.outlet_mult.get(outlet.code, 1.0) * np.where(we, sku.weekend_mult, 1.0)
+            demand = rng.poisson(txns.to_numpy() * rate)
+            if sku.fresh_cost is None:
+                sold = made = demand
             else:
-                units = txns.to_numpy() * use_rate * rng.normal(1, 0.04, len(dates))
-                deliveries = DELIVERY_DAYS[item]
-                cover = max(np.diff([*deliveries, deliveries[0] + 7]))  # longest gap between deliveries
-                par = units.mean() * cover * 1.12  # set once, never revisited
-                on_hand = par
-                for i, d in enumerate(dates):
-                    if d.weekday() in deliveries:
-                        on_hand = max(on_hand, par)  # top up to par
-                    on_hand = max(0.0, on_hand - units[i])
-                    if unit == "pcs":
-                        on_hand = float(np.floor(on_hand))
-                    stock_rows.append((d, outlet.name, item, unit, round(on_hand, 2)))
-                if item == "Fresh milk":
-                    waste += rng.gamma(1.5, 2.0, len(dates))  # the odd spoiled carton
-            decimals = 0 if unit == "pcs" else 2
-            items_rows += [(d, outlet.name, item, round(u, decimals)) for d, u in zip(dates, units)]
+                sold, made = np.zeros(len(dates)), np.zeros(len(dates))
+                for i in range(len(dates)):
+                    # Operator's rule: make as many as sold on the same day last week, plus 15%.
+                    ref = sold[i - 7] if i >= 7 else txns.iloc[i] * rate[i]
+                    made[i] = round(ref * 1.15)
+                    sold[i] = min(demand[i], made[i])
+                waste += (made - sold) * sku.fresh_cost
+            used[sku.name] = made
+            items_rows += [(d, outlet.name, sku.name, int(u)) for d, u in zip(dates, sold)]
+
+        for ingredient, deliveries in DELIVERY_DAYS.items():
+            r = recipes[recipes["ingredient"] == ingredient]
+            usage = sum(used[row.item] * row.qty for row in r.itertuples()) * rng.normal(1, 0.03, len(dates))
+            unit = r["unit"].iloc[0]
+            par = usage.mean() * max(np.diff([*deliveries, deliveries[0] + 7])) * 1.12  # set once, never revisited
+            on_hand = par
+            for i, d in enumerate(dates):
+                if d.weekday() in deliveries:
+                    on_hand = max(on_hand, par)  # top up to par
+                on_hand = max(0.0, on_hand - usage[i])
+                if unit == "pcs":
+                    on_hand = float(np.floor(on_hand))
+                stock_rows.append((d, outlet.name, ingredient, unit, round(on_hand, 2)))
         waste_rows += [(d, outlet.name, round(w, 2)) for d, w in zip(dates, waste)]
     items = pd.DataFrame(items_rows, columns=["date", "outlet", "item", "units_sold"])
     stock = pd.DataFrame(stock_rows, columns=["date", "outlet", "item", "unit", "on_hand"])
@@ -283,8 +327,9 @@ def write_messy_exports(sales: pd.DataFrame, stock: pd.DataFrame, waste: pd.Data
                   "Wastage Value (S$)": waste["waste_sgd"]}).to_csv(raw / "wastage_log.csv", index=False)
     pd.DataFrame({"Shift Date": roster["date"].dt.strftime("%Y-%m-%d"), "Branch Name": roster["outlet"].map(branch),
                   "Hour": roster["hour"], "Staff On Duty": roster["scheduled_staff"]}).to_csv(raw / "roster_export.csv", index=False)
-    pd.DataFrame({"Item": [m[0] for m in MENU], "UOM": [m[1] for m in MENU],
-                  "Qty per Bill": [m[2] for m in MENU]}).to_csv(raw / "recipe_usage.csv", index=False)
+    pd.DataFrame({"Item": [k.name for k in SKUS], "UOM": "pcs",
+                  "Qty per Bill": [k.per_txn for k in SKUS]}).to_csv(raw / "menu_mix.csv", index=False)
+    pd.DataFrame(RECIPES, columns=["Menu Item", "Ingredient", "UOM", "Qty"]).to_csv(raw / "bill_of_materials.csv", index=False)
 
     # example_txn: line-item level receipts for the last 4 weeks, including voids. No customer fields.
     raw = ROOT / "data" / "clients" / "example_txn" / "raw"
@@ -330,11 +375,13 @@ def generate(end: pd.Timestamp, seed: int = 7, out_dir: Path = SAMPLE_DIR, signa
     days = days_all[days_all["date"] <= end].reset_index(drop=True)
     sales = make_sales(days, rng)
     roster = make_roster(days_all, rng)
-    items, stock, waste = make_items_stock_waste(sales, rng)
-    menu = pd.DataFrame([(m[0], m[1], m[2]) for m in MENU], columns=["item", "unit", "usage_per_transaction"])
+    items, stock, waste = make_items_stock_waste(sales, days, rng)
+    menu = pd.DataFrame([(k.name, "pcs", k.per_txn) for k in SKUS], columns=["item", "unit", "usage_per_transaction"])
+    recipes = pd.DataFrame(RECIPES, columns=["item", "ingredient", "unit", "qty_per_item"])
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    files = {"sales": sales, "items": items, "stock": stock, "roster": roster, "waste": waste, "menu": menu, "weather": weather}
+    files = {"sales": sales, "items": items, "stock": stock, "roster": roster, "waste": waste, "menu": menu,
+             "recipes": recipes, "weather": weather}
     for name, df in files.items():
         fmt = "%Y-%m-%d %H:%M:%S" if name == "sales" else "%Y-%m-%d"
         df.to_csv(out_dir / f"{name}.csv", index=False, date_format=fmt)

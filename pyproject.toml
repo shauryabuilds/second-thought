@@ -14,7 +14,7 @@ dependencies = [
     "pyyaml>=6.0",
     "requests>=2.31",
     "lightgbm>=4.1",
-    "streamlit>=1.30",
+    "streamlit>=1.50",
     "altair>=5.0",
     "matplotlib>=3.8",
 ]
