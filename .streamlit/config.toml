@@ -1,0 +1,15 @@
+[theme]
+primaryColor = "#1D4ED8"
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+headless = true
+
+[client]
+toolbarMode = "viewer"
+
+[ui]
+hideTopBar = true

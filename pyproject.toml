@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kaizen"
+version = "0.1.0"
+description = "Kaizen Labs: POS transactions -> hourly demand forecast -> orders and rosters"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.1",
+    "numpy>=1.26",
+    "pydantic>=2.5",
+    "pyyaml>=6.0",
+    "requests>=2.31",
+    "lightgbm>=4.1",
+    "streamlit>=1.30",
+    "altair>=5.0",
+    "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4"]
+
+[tool.setuptools]
+packages = ["kaizen"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

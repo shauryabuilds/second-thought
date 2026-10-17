@@ -1,0 +1,32 @@
+# How to read this client's exports. Raw files live in data/clients/example_15min/raw/.
+# Left side = what the pipeline expects, right side = the column name in their export.
+
+outlets:                       # their branch names -> the names shown in the dashboard
+  DEMO CAFE RP01: CBD - Raffles Place
+  DEMO CAFE OR02: Orchard
+  DEMO CAFE TP03: Tampines
+  DEMO CAFE JE04: Jurong East
+  DEMO CAFE CG05: Changi Airport T3
+
+sales:
+  file: sales_15min_export*.csv  # a glob, so monthly files can just be dropped in
+  layout: buckets                # each row is a time bucket with a count
+  timestamp: Interval            # e.g. 2026-01-05T08:15:00+08:00
+  outlet: Branch Name
+  count: No. of Bills            # "Gross Sales (S$)" is never read
+
+files:
+  stock:
+    file: inventory_counts.csv
+    columns: {date: Count Date, outlet: Branch Name, item: SKU, unit: UOM, on_hand: Closing Qty}
+    date_format: "%d-%b-%Y"      # 05-Jan-2026
+  waste:
+    file: wastage_log.csv
+    columns: {date: Date, outlet: Branch Name, waste_sgd: Wastage Value (S$)}
+    date_format: "%d/%m/%Y"
+  roster:
+    file: roster_export.csv
+    columns: {date: Shift Date, outlet: Branch Name, hour: Hour, scheduled_staff: Staff On Duty}
+  menu:
+    file: recipe_usage.csv
+    columns: {item: Item, unit: UOM, usage_per_transaction: Qty per Bill}

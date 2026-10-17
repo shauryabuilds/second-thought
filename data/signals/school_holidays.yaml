@@ -1,0 +1,19 @@
+# MOE school term breaks (primary and secondary), hand-maintained.
+# Source: MOE press releases "School terms and holidays for <year>" on moe.gov.sg.
+# Each entry is inclusive of start and end. Add next year's dates when MOE
+# publishes them (usually July). The pipeline warns if a year is missing.
+years_covered: [2025, 2026, 2027]
+breaks:
+  - {name: "2024 year-end holidays", start: 2024-11-16, end: 2025-01-01}
+  - {name: "2025 March holidays",    start: 2025-03-15, end: 2025-03-23}
+  - {name: "2025 June holidays",     start: 2025-05-31, end: 2025-06-29}
+  - {name: "2025 September holidays", start: 2025-09-06, end: 2025-09-14}
+  - {name: "2025 year-end holidays", start: 2025-11-22, end: 2026-01-01}
+  - {name: "2026 March holidays",    start: 2026-03-14, end: 2026-03-22}
+  - {name: "2026 June holidays",     start: 2026-05-30, end: 2026-06-28}
+  - {name: "2026 September holidays", start: 2026-09-05, end: 2026-09-13}
+  - {name: "2026 year-end holidays", start: 2026-11-21, end: 2027-01-03}
+  - {name: "2027 March holidays",    start: 2027-03-13, end: 2027-03-21}
+  - {name: "2027 June holidays",     start: 2027-05-29, end: 2027-06-27}
+  - {name: "2027 September holidays", start: 2027-09-04, end: 2027-09-12}
+  - {name: "2027 year-end holidays", start: 2027-11-20, end: 2027-12-31}

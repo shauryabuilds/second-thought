@@ -1,0 +1,3 @@
+# Example client whose POS exports one row per receipt line. Raw file is created by `make sample`
+# (4 weeks only, so this one is for trying `make ingest`, not for forecasting).
+name: Example (transaction-level export)

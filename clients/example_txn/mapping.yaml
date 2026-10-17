@@ -1,0 +1,20 @@
+# One row per receipt line, dates as dd/mm/yyyy, voids included.
+# Raw file lives in data/clients/example_txn/raw/.
+
+outlets:
+  RP01: CBD - Raffles Place
+  OR02: Orchard
+  TP03: Tampines
+  JE04: Jurong East
+  CG05: Changi Airport T3
+
+sales:
+  file: pos_transactions_export*.csv
+  layout: transactions           # count receipts, not rows
+  date: Txn Date
+  time: Txn Time
+  timestamp_format: "%d/%m/%Y %H:%M:%S"
+  outlet: Store
+  transaction_id: Receipt No     # a receipt with 3 lines counts once
+  exclude:
+    Status: [VOID, REFUND]

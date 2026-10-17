@@ -1,0 +1,9 @@
+# Example client whose POS exports 15-minute buckets. Raw files are created by `make sample`.
+# Try: make ingest CLIENT=example_15min && make forecast plan CLIENT=example_15min
+name: Example (15-minute export)
+# inputs_dir / outputs_dir default to data/clients/example_15min/{inputs,outputs}
+items_by_name:
+  Butter croissant: {pack_size: 12, cover_days: 1, perishable: true}
+  Chicken sandwich: {pack_size: 6, cover_days: 1, perishable: true}
+  Fresh milk: {pack_size: 12, cover_days: 3}
+  Takeaway cups: {pack_size: 50}

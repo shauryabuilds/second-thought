@@ -1,0 +1,33 @@
+# Demo Café Group: the fictional client used for the demo and the website.
+name: Demo Café Group
+is_sample: true
+inputs_dir: data/sample
+outputs_dir: data/outputs
+weather_station: S24          # MSS Changi
+
+# Suggested staff per hour = ceil(forecast transactions / transactions_per_staff_hour),
+# never below min_staff while the outlet is open.
+staffing:
+  transactions_per_staff_hour: 22
+  min_staff: 2
+staffing_by_outlet:
+  CBD - Raffles Place: {transactions_per_staff_hour: 25}   # grab-and-go, faster service
+  Changi Airport T3: {min_staff: 3}                        # airside, longer hours
+
+# Suggested order = forecast demand over cover_days x (1 + buffer) - usable stock on hand,
+# rounded up to whole packs. Perishables are baked or delivered daily: leftovers are
+# written off, so stock on hand is not counted for them.
+items:
+  buffer: 0.10
+items_by_name:
+  Coffee beans:     {pack_size: 1,  cover_days: 7}     # 1 kg bags, weekly delivery
+  Fresh milk:       {pack_size: 12, cover_days: 3}     # cases of 12 x 1 L, twice a week
+  Butter croissant: {pack_size: 12, cover_days: 1, perishable: true, buffer: 0.05}
+  Chicken sandwich: {pack_size: 6,  cover_days: 1, perishable: true, buffer: 0.05}
+  Takeaway cups:    {pack_size: 50, cover_days: 7, buffer: 0.15}
+
+# Used only for the clearly labelled savings ESTIMATE. Change these with the client.
+savings:
+  hourly_wage_sgd: 14.0
+  avoidable_waste_share: 0.30         # share of today's waste better ordering could avoid
+  recoverable_overstaff_share: 0.50   # share of over-staffed hours that can realistically be cut
